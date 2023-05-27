@@ -5,12 +5,14 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import glob
 import sys
+import time
 from enum import Enum
 
 
-
 _IMAGE_DIR = pathlib.Path('images')
-_DURATION_MS = 3000
+_DURATION_MS = 5000
+_TRANSITION_STEPS = 0.05
+_TRANSITION_SLEEP = 0.025
 
 class State(Enum):
     NORMAL = 0
@@ -32,11 +34,11 @@ class Application(tk.Tk, FileSystemEventHandler):
         # Tkinter
         self.title('Slideshow')
         self.resizable(width=False, height=False)
-        self.current_image = tk.Label(self)
-        self.current_image.pack()
+        self.label = tk.Label(self)
+        self.label.pack()
+        self.current_image: Image = None
         self.duration_ms = duration_ms
-        self.attributes('-fullscreen', False)
-        self.geometry('512x512')
+        self.attributes('-fullscreen', True)
         self.images_dir = images_dir
 
         # Watchdog
@@ -62,7 +64,10 @@ class Application(tk.Tk, FileSystemEventHandler):
             print(f'Next image {next_image_path}')
 
         next_image = self._get_image(next_image_path)
-        self._display_image(next_image)
+        if self.current_image is None:
+            self.current_image = next_image
+        else:
+            self._transition(next_image)
         self.after(self.duration_ms, self._next_image)
 
     def _get_state(self) -> State:
@@ -71,14 +76,27 @@ class Application(tk.Tk, FileSystemEventHandler):
         else:
             return State.NORMAL
 
-    def _get_image(self, path: pathlib.Path) -> ImageTk.PhotoImage:
+    def _get_image(self, path: pathlib.Path) -> Image:
         image = Image.open(path)
-        image = image.resize((self.winfo_width(), self.winfo_height()))
-        return ImageTk.PhotoImage(image)
+        #image = image.resize((self.winfo_width(), self.winfo_height()))
+        image = image.resize((1920, 1080))
+        return image
 
-    def _display_image(self, image: ImageTk.PhotoImage) -> None:
-        self.current_image.config(image=image)
-        self.current_image.image = image
+    def _display_image(self, image: Image) -> None:
+        image = ImageTk.PhotoImage(image)
+        self.label.config(image=image)
+        self.label.image = image
+        self.label.update()
+
+    def _transition(self, next_image: Image):
+        alpha = 0
+        while alpha < 1:
+            blended_image = Image.blend(self.current_image, next_image, alpha)
+            self._display_image(blended_image)
+            alpha += _TRANSITION_STEPS
+            time.sleep(_TRANSITION_SLEEP)
+
+        self.current_image = next_image
 
     def on_created(self, event):
         if not event.is_directory:
@@ -94,6 +112,7 @@ class Application(tk.Tk, FileSystemEventHandler):
 
 def main():
     application = Application(_IMAGE_DIR, _DURATION_MS)
+
     application.start()
     application.mainloop()
 
