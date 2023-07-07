@@ -9,10 +9,13 @@ import time
 from enum import Enum
 
 
-_IMAGE_DIR = pathlib.Path('images')
+_IMAGE_DIR = pathlib.Path('/Users/teo/Desktop/fotobox')
 _DURATION_MS = 5000
-_TRANSITION_STEPS = 0.05
-_TRANSITION_SLEEP = 0.025
+_TRANSITION_STEPS = 0.025
+_TRANSITION_SLEEP = 0.0001
+
+_HEIGHT = 1080
+_WIDTH = 1650
 
 class State(Enum):
     NORMAL = 0
@@ -40,13 +43,15 @@ class Application(tk.Tk, FileSystemEventHandler):
         self.duration_ms = duration_ms
         self.attributes('-fullscreen', True)
         self.images_dir = images_dir
+        self.configure(bg='black')
 
         # Watchdog
         self.observer = Observer()
         self.observer.schedule(self, self.images_dir, recursive=False)
         self.observer.start()
 
-        self.image_queue = [pathlib.Path(image) for image in glob.glob(f'{images_dir}/*.jpg')]
+        self.image_queue = [pathlib.Path(image) for image in glob.glob(f'{images_dir}/*.JPG')]
+        self.image_queue.sort()
         self.image_queue_index = 0
         self.image_preview_queue = []
 
@@ -79,7 +84,7 @@ class Application(tk.Tk, FileSystemEventHandler):
     def _get_image(self, path: pathlib.Path) -> Image:
         image = Image.open(path)
         #image = image.resize((self.winfo_width(), self.winfo_height()))
-        image = image.resize((1920, 1080))
+        image = image.resize((_WIDTH, _HEIGHT))
         return image
 
     def _display_image(self, image: Image) -> None:
@@ -97,6 +102,7 @@ class Application(tk.Tk, FileSystemEventHandler):
             time.sleep(_TRANSITION_SLEEP)
 
         self.current_image = next_image
+        self._display_image(self.current_image)
 
     def on_created(self, event):
         if not event.is_directory:
