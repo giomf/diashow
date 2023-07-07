@@ -39,7 +39,7 @@ def overwrite_metadata(filename: str, date: datetime):
             raise RuntimeError
         exif_data.get_ifd(34665)[36867] = date.strftime("%Y:%m:%d %H:%M:%S")
         exif_data.get_ifd(34665)[306] = date.strftime("%Y:%m:%d %H:%M:%S")
-        exif_data.get_ifd(36868)[306] = date.strftime("%Y:%m:%d %H:%M:%S")
+        exif_data.get_ifd(34665)[36868] = date.strftime("%Y:%m:%d %H:%M:%S")
         image.save(destination, exif=exif_data, quality=97)
         print(f"Metadata overwritten for {filename}")
     except Exception as e:
