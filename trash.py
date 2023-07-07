@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 
 import os
-from datetime import datetime
-from pathlib import Path
-from PIL import Image
-import re
 
-
-_TRASH_SOURCE = './pictures_Trash'
+_TRASH_SOURCE = './pictures_trash'
 _SOURCE = './pictures_metadata'
 _DESTINATION = './pictures_out_trash'
 _COUNT_OFFSET = 131
