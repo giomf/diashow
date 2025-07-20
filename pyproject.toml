@@ -20,6 +20,10 @@ select = [ "ALL" ]
 # Ignore specific rules
 ignore = [
     "E501",  # line too long (handled by line-length)
+    "LOG015", # root-logger-call
+    "D212", 
+    "D205",
+    "D107"
 ]
 
 # Exclude directories
