@@ -1,15 +1,15 @@
-import tkinter as tk
-import pathlib
-from PIL import Image, ImageTk
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 import glob
+import pathlib
 import sys
 import time
+import tkinter as tk
 from enum import Enum
 
+from PIL import Image, ImageTk
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
-_IMAGE_DIR = pathlib.Path('/Users/teo/Desktop/fotobox')
+_IMAGE_DIR = pathlib.Path("/Users/teo/Desktop/fotobox")
 _DURATION_MS = 5000
 _TRANSITION_STEPS = 0.025
 _TRANSITION_SLEEP = 0.0001
@@ -17,56 +17,53 @@ _TRANSITION_SLEEP = 0.0001
 _HEIGHT = 1080
 _WIDTH = 1650
 
+
 class State(Enum):
     NORMAL = 0
     PREVIEW = 1
 
 
 class Application(tk.Tk, FileSystemEventHandler):
-
     image_queue: list[pathlib.Path]
     image_preview_queue: list[pathlib.Path]
     image_queue_index: int
     current_image: tk.Label
     after_id: int
 
-
     def __init__(self, images_dir: pathlib.Path, duration_ms: int):
         super().__init__()
 
         # Tkinter
-        self.title('Slideshow')
+        self.title("Slideshow")
         self.resizable(width=False, height=False)
         self.label = tk.Label(self)
         self.label.pack()
         self.current_image: Image = None
         self.duration_ms = duration_ms
-        self.attributes('-fullscreen', True)
+        self.attributes("-fullscreen", True)
         self.images_dir = images_dir
-        self.configure(bg='black')
+        self.configure(bg="black")
 
         # Watchdog
         self.observer = Observer()
         self.observer.schedule(self, self.images_dir, recursive=False)
         self.observer.start()
 
-        self.image_queue = [pathlib.Path(image) for image in glob.glob(f'{images_dir}/*.JPG')]
+        self.image_queue = [pathlib.Path(image) for image in glob.glob(f"{images_dir}/*.JPG")]
         self.image_queue.sort()
         self.image_queue_index = 0
         self.image_preview_queue = []
 
-          
     def _next_image(self) -> None:
-
         if self._get_state() == State.PREVIEW:
             next_image_path = self.image_preview_queue.pop(0)
-            print(f'Next preview image {next_image_path}')
+            print(f"Next preview image {next_image_path}")
         else:
             if self.image_queue_index == len(self.image_queue):
                 self.image_queue_index = 0
             next_image_path = self.image_queue[self.image_queue_index]
             self.image_queue_index += 1
-            print(f'Next image {next_image_path}')
+            print(f"Next image {next_image_path}")
 
         next_image = self._get_image(next_image_path)
         if self.current_image is None:
@@ -83,7 +80,7 @@ class Application(tk.Tk, FileSystemEventHandler):
 
     def _get_image(self, path: pathlib.Path) -> Image:
         image = Image.open(path)
-        #image = image.resize((self.winfo_width(), self.winfo_height()))
+        # image = image.resize((self.winfo_width(), self.winfo_height()))
         image = image.resize((_WIDTH, _HEIGHT))
         return image
 
@@ -110,11 +107,11 @@ class Application(tk.Tk, FileSystemEventHandler):
             self.image_queue.insert(0, image_path)
             self.image_queue_index += 1
             self.image_preview_queue.append(image_path)
-            print(f'File created: {event.src_path}')
-        
+            print(f"File created: {event.src_path}")
 
     def start(self):
         self._next_image()
+
 
 def main():
     application = Application(_IMAGE_DIR, _DURATION_MS)
