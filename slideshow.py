@@ -3,6 +3,7 @@
 
 import argparse
 import logging
+import random
 import time
 import tkinter as tk
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from watchdog.events import (
 from watchdog.observers import Observer
 
 _DEFAULT_DURATION_MS = 5000
+_DEFAULT_IMAGES_PATH = "."
 _DEFAULT_START_INDEX = 0
 _TRANSITION_STEPS = 0.025
 _TRANSITION_SLEEP = 0.0001
@@ -34,21 +36,40 @@ class CliArguments:
     images: Path
     start: int
     duration: int
+    random: bool
 
 
 def parse_arguments() -> CliArguments:
     """Parse command line arguments for the slideshow application."""
     parser = argparse.ArgumentParser(description="Diashow")
-    parser.add_argument("--images", help="Path to the image directory")
-    parser.add_argument("--start", type=int, default=_DEFAULT_START_INDEX, help="Starting number, default: 0")
+    parser.add_argument("--images", default=_DEFAULT_IMAGES_PATH, help="Path to the image directory")
     parser.add_argument(
         "--duration",
         type=int,
         default=_DEFAULT_DURATION_MS,
         help="Duration in milliseconds, default: 5000ms",
     )
+
+    start_group = parser.add_mutually_exclusive_group()
+    start_group.add_argument(
+        "--start",
+        type=int,
+        default=_DEFAULT_START_INDEX,
+        help="Starting number, default: 0",
+    )
+    start_group.add_argument(
+        "--random",
+        action="store_true",
+        help="Shuffle the image queue randomly",
+    )
+
     arguments = parser.parse_args()
-    return CliArguments(images=Path(arguments.images), start=arguments.start, duration=arguments.duration)
+    return CliArguments(
+        images=Path(arguments.images),
+        start=arguments.start,
+        duration=arguments.duration,
+        random=arguments.random,
+    )
 
 
 class State(Enum):
@@ -69,7 +90,7 @@ class Slideshow(tk.Tk, FileSystemEventHandler):
     _image_queue_index: int
     _current_image: tk.Label
 
-    def __init__(self, images_dir: Path, start: int, duration_ms: int) -> None:
+    def __init__(self, images_dir: Path, start: int, duration_ms: int, random_order: bool) -> None:  # noqa: FBT001
         super().__init__()
 
         if not images_dir.exists():
@@ -90,6 +111,7 @@ class Slideshow(tk.Tk, FileSystemEventHandler):
         self.attributes("-fullscreen", True)  # noqa: FBT003
         self.images_dir = images_dir
         self.configure(bg="black")
+        self.random_order = random_order
 
         # Watchdog
         self.observer = Observer()
@@ -117,7 +139,13 @@ class Slideshow(tk.Tk, FileSystemEventHandler):
             if self.image_queue_index == len(self.image_queue):
                 self.image_queue_index = 0
             next_image_path = self.image_queue[self.image_queue_index]
-            self.image_queue_index += 1
+            if self.random_order:
+                random_queue_index = self.image_queue_index
+                while random_queue_index == self.image_queue_index:
+                    random_queue_index = random.randrange(0, len(self.image_queue))  # noqa: S311
+                self.image_queue_index = random_queue_index
+            else:
+                self.image_queue_index += 1
             logging.info("Next image %s", next_image_path)
 
         next_image = self._get_image(next_image_path)
@@ -202,7 +230,7 @@ def main() -> None:
 
     try:
         cli_arguments = parse_arguments()
-        slideshow = Slideshow(cli_arguments.images, cli_arguments.start, cli_arguments.duration)
+        slideshow = Slideshow(cli_arguments.images, cli_arguments.start, cli_arguments.duration, cli_arguments.random)
         slideshow.start()
         slideshow.mainloop()
     except Exception as error:  # noqa: BLE001
