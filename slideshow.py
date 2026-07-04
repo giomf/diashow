@@ -187,7 +187,7 @@ class Slideshow(tk.Tk, FileSystemEventHandler):
 
     def on_any_event(self, event: FileSystemEvent) -> None:
         """Handle file system events."""
-        if event.is_directory:
+        if not event.is_directory:
             if event.event_type == EVENT_TYPE_CREATED:
                 logging.debug("File created: %s", event.src_path)
                 image_path = Path(event.src_path)
